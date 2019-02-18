@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+{% extends "prediction/base.html" %}
+<head>
+{% block title %}
+{% load mytags %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.15/se-1.2.2/datatables.min.css"/>
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.15/se-1.2.2/datatables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/fixedcolumns/3.2.4/js/dataTables.fixedColumns.min.js"></script>
+<script src=//cdn.bio.sh/msa/1.0/msa.min.gz.js></script>
+<script src="https://s3.eu-central-1.amazonaws.com/cdn.bio.sh/msa/latest/msa.min.gz.js"></script>
+
+<script type="text/javascript">
+	function refresh (timeoutPeriod){ 
+		refresh = setTimeout(function(){window.location.reload(true);},timeoutPeriod); 
+	} 
+        
+	$(document).ready(function() {
+	    $("#button").click(function(){
+	    //alert('plop');
+        $(".epitopes").toggle();
+        //alert('plop');
+    });
+	    var t1=$('#example').DataTable( {
+            "lengthMenu": [[10, 20, 50, -1], [10, 20, 50, "All"]],
+            "pageLength": 10,
+            scrollX:        true,
+            scrollCollapse: true,
+        } );
+        $('a.toggle-vis').on( 'click', function (e) {
+        e.preventDefault();
+ 
+        // Get the column API object
+        var column = t1.column( $(this).attr('data-column') );
+ 
+        // Toggle the visibility
+        column.visible( ! column.visible() );
+    } );
+    t1.columns().every( function () {
+        var that = this;
+ 
+        $( 'input', this.footer() ).on( 'keyup change', function () {
+            if ( that.search() !== this.value ) {
+                that
+                    .search( this.value )
+                    .draw();
+            }
+        } );
+    } );
+    
+    
+} );
+
+</script>
+{% load static %}
+<style>
+.myTable {
+border-collapse: collapse;
+}
+.myTable thead th {
+font-weight:normal;
+background-color: #DDD;
+color: #336B6B;
+text-align: left;
+text-shadow: 1px 1px 1px #fff;
+}
+.myTable tbody td {
+font-weight:normal;
+color: #333;
+text-shadow: 1px 1px 1px #fff;
+}
+.myTable-highlight-all {
+overflow: hidden;
+z-index: 1;
+}
+.myTable-highlight-all tbody td, .myTable-highlight-all thead th {
+position: relative;
+}
+.myTable-highlight-all tbody td:hover::before {
+background-color: #DDD;
+content:'\00a0';
+height: 100%;
+left: -5000px;
+position: absolute;
+top: 0;
+width: 10000px;
+z-index: -1;
+}
+.myTable-highlight-all tbody td:hover::after {
+background-color: #DDD;
+content:'\00a0';
+height: 10000px;
+left: 0;
+position: absolute;
+top: -5000px;
+width: 100%;
+z-index: -1;
+}
+
+tfoot input {
+        width: 100%;
+        padding: 3px;
+        box-sizing: border-box;
+    }
+
+
+.headcol {
+  background-color:transparent; !important
+  position: absolute; !important
+  width:10em;
+  left:8%;
+  /*only relevant for first row*/
+  /*compensate for top border*/
+}
+
+.headcol2 {
+  background-color:transparent; !important
+  position: absolute; !important
+  width:10em;
+  left:6%;
+  /*only relevant for first row*/
+  /*compensate for top border*/
+}
+
+
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Style the buttons inside the tab */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-size: 17px;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+div.scrolling-wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+
+  .card {
+    flex: 0 0 auto;
+  }
+}
+th, td { white-space: nowrap; }
+    div.dataTables_wrapper {
+        margin: 0 auto;
+    }
+    
+td.highlight {
+    background-color: whitesmoke !important;
+}
+
+tr.hover td { background-color: whitesmoke;}
+
+</style>
+{% endblock %}
+</head>
+{% block content %}
+<p><font size="3">{{Test.name}} : Conservation threshold : {% widthratio Test.threshold 1 100 %}% Stretch length : {{Test.stretch}} Window size:{{Test.min_ep_length}}-{{Test.max_ep_length}}({{Test.min_ter_length}}-{{Test.max_ter_length}} for terminal regions) Process cystein : {{Test.cystein}} Remove repeats : {{Test.repeats}}</font></p>
+    {%if Test.over%}
+        {% if Test.fail %}
+            {% if "Jpred error" == Test.fail %}
+                <h1>There was an issue with the Jpred API, we recommend to try again later</h1>
+            {% elif 'no element found: line 1, column 0' == Test.fail %}
+                <h1>You used an obsolete or invalid Uniprot ID, please use an actual one or a fasta sequence</h1>
+            {% else %}
+                <h1>There was an issue with your request, please verify your settings and try again later</h1>
+            {% endif %}
+        
+        {% else %}
+        <p><a  href="{% url 'download' proc_id=Test.hash_id %}" style="font-size: 14px;"> Download results </a></p>
+        <div class="tab">
+  <button class="tablinks" onclick="openTabs(event, 'Summary')" id="defaultOpen">Summary</button>
+  <button class="tablinks" onclick="openTabs(event, 'Alignment1')">Alignment intra-species</button>
+  <button class="tablinks" onclick="openTabs(event, 'Alignment2')">Alignment inter-species</button>
+</div>
+            
+            <div id="Summary" class="tabcontent">
+            <div style="overflow-x: scroll;  overflow-y: visible;  padding: 0;margin-left:20em; ">
+            <table style="border-collapse: separate; border-spacing: 0; border-top: 1px solid grey;border-bottom: 1px solid grey;" class="myTable myTable-highlight-all">
+<!--  dic2 est un dictionnaire qui contient les résultats de prédiction de chaque méthode et les données additionnelles pour l'aide à la selection         -->
+            {% for key,value in dic2.items %}
+                {% if key == "WestBeSEL" %}
+                    <tr><th align="center"  class="headcol2" style="position:absolute;"><b>Sequence</b></td>
+                    {% for value2 in value %}
+                        {% if value2.1 %}
+                    <td align="center" title="{{forloop.counter}}" style="color:red;padding:0;margin:0;">{{value2.0}}</td>
+                        {% else %}
+                    <td align="center" title="{{forloop.counter}}" style="padding:0;margin:0;">{{value2.0}} </td>
+                        {% endif %}
+                    {% endfor %}
+                {% elif key == "epitopes" %}
+                {% elif key == "ABCPred" %}
+                    <tr><th align="center" class="headcol2"  style="position:absolute;border-top: 1px solid lightgray;"><b>Prediction tools : </b></td>
+                    {% for value2 in value %}
+                    <td style="border-top: 1px solid lightgray;">&nbsp;</td>
+                    {% endfor %}
+                    </tr>
+                    <tr><th align="center" class="headcol"  style="position:absolute;"><b>-{{key}} </b></td>
+                {% elif key == "Conservation" %}
+                    <tr><th align="center" class="headcol2"  style="position:absolute;border-top: 1px solid lightgray;"><b>Protein characteristics : </b></td>
+                    {% for value2 in value %}
+                    <td style="border-top: 1px solid lightgray;">&nbsp;</td>
+                    {% endfor %}
+                    </tr>
+                    <tr><th align="center" class="headcol"  style="position:absolute;"><b>-{{key}} </b></td>
+                {% else %}
+                    <tr><th align="center" class="headcol"  style="position:absolute;"><b>-{{key}} </b></td>
+                {% endif %}
+                {% for value2 in value %}
+                    {% if key == "WestBeSEL" %}
+                    {% elif key == "epitopes" %}
+                        {% if forloop.counter == 1 %}
+                            <tr><th align="center" class="headcol2"  style="position:absolute;background-color: transparent;"><b>WeStBESel potential epitopes <a href="#" id="button"> +</a></b></td>
+                        {% else %}
+                            <tr style="display:none;"  class="epitopes"><td align="center" style="position:absolute;background-color: transparent;"><b></b></td>
+                        {% endif %}
+                    
+                        {% for x in dic2.WestBeSEL %}
+                            {% if forloop.counter0 in value2 %}
+                                <td {% if forloop.parentloop.counter == dic2.epitopes|length %} {% endif %} title="aa {{forloop.counter}}">-</td>
+                            {% else %}
+                                <td {% if forloop.parentloop.counter == dic2.epitopes|length %} {% endif %} title="aa {{forloop.counter}}">&nbsp;</td>
+                            {% endif %}
+                        {% endfor %}
+                        </tr>
+                    {% elif key == "Conservation" %}
+                        <td class="{{key}}" align="center" title="Conserved at {% widthratio value2 1 100 %}% within species" style="background: rgba(0,150,0,{{value2}});">&nbsp;</td>
+                    {% elif key == "Variability" %}
+                        <td class="{{key}}" align="center" title="Conserved at {% widthratio value2 1 100 %}% between species" style="background: rgba(255,0,0,{{value2}});">&nbsp;</td>
+                    {% elif key == "Solvent accessibility" %}
+                            {% if value2 == 1 %}
+                                <td  class="{{key}}" align="center" title="Not buried" style="background: rgba(0,0,255,{{value2}});">&nbsp;</td>
+                            {% elif value2 == 0.25 %}
+                                <td  class="{{key}}" align="center" title="buried" style="background: rgba(0,0,255,{{value2}});">&nbsp;</td>
+                            {% elif value2 == 0.05 %}
+                                <td  class="{{key}}" align="center" title="buried" style="background: rgba(0,0,255,{{value2}});">&nbsp;</td>
+                            {% else %}
+                                <td  class="{{key}}" align="center" title="buried" style="">&nbsp;</td>
+                            {% endif %}
+                    {% else %}
+                            {% if value2 == "X" %}
+                                <td  class="{{key}}" align="center" title="aa {{forloop.counter}}" style="";>-</td>
+                            {% elif value2 == "" %}
+                                <td  class="{{key}}" align="center" title="aa {{forloop.counter}}" style=""><p>{{value2}}</p></td>
+                             {% else %}
+                                <td  class="{{key}}" align="center" title="aa {{forloop.counter}}" style="">{{value2}}</td>
+                           {% endif %}
+                   {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </table>
+        </div>
+        <br>
+        <div class="row align-items-center">
+            <div class="col text-center">
+                <p><b>Conservation of the aa for an</b></p>
+            </div>
+            <div class="col text-center" width="50%">
+            <p><b>Solvent accessibility : </b></p>
+            </div>
+        </div>
+        <div class="row align-items-center">
+        <div class="col text-center">
+        <p><b>intra-species alignment : </b></p>
+        0%
+         <svg width="100" height="20">
+             <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:rgba(0,150,0,0);stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:rgba(0,150,0,100);stop-opacity:1" />
+                </linearGradient>
+              </defs>
+          <rect width="100" height="20" fill="url(#grad1)" style="stroke-width:3;stroke:rgb(0,0,0)"/>
+        </svg> 
+        100% 
+        </div>
+        <div class="col">
+        <p><b>inter-species alignment : </b></p>
+         0%
+         <svg width="100" height="20">
+         <defs>
+            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:rgba(255,0,0,0);stop-opacity:1" />
+              <stop offset="100%" style="stop-color:rgba(255,0,0,100);stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="20" fill="url(#grad2)" style="stroke-width:3;stroke:rgb(0,0,0)"/>
+        </svg> 
+        100%
+        </div>
+        <div class="col text-center">
+         Buried
+         <svg width="100" height="20">
+         <defs>
+            <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:rgba(0,0,255,0);stop-opacity:1" />
+              <stop offset="100%" style="stop-color:rgba(0,0,255,100);stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="20" fill="url(#grad3)" style="stroke-width:3;stroke:rgb(0,0,0)"/>
+        </svg> 
+        Not buried
+        </div>
+        </div>
+        <br><br>
+<!-- Excel comprend les 100 premiers épitopes (ou moins) sélectionnés par notre outil avec toutes les informations additionnelles      -->
+        {% if excel|length > 1 %}
+            {% if excel|length > 100 %}
+            <br><br>
+                <h2><b>The below table show only the first 100 ranked epitopes, the others are available in the file</b></h2>
+            {% endif %}
+        <div>
+        <div >Toggle column:
+        {% for key,value in excel.items%}
+        <a class="toggle-vis" data-column="{{forloop.counter}}" href="#"> - {{value.0}}</a>
+        {% endfor %}
+        </div>
+        <table id="example" class="hover" cellspacing="0" width="100%">
+        {% for x in range %}
+            {% ifequal x 0 %}
+                <thead><tr><th>Rank</th>
+                {% else%} 
+                <tr><td align="center">{{forloop.counter0}}</td>
+            {% endifequal %}
+            
+            {% for key,value in excel.items%}
+                {% ifequal x 0 %}
+                <th>
+                {% else%} 
+                <td align="center">
+                {% endifequal %}
+                {%for res in value%}
+                    {% ifequal forloop.counter0 x %}
+                        {{res}}  
+                    {% endifequal %}
+                {% endfor %}    
+                {% ifequal x 0 %}
+                </th>
+                {% else%} 
+                </td>
+                {% endifequal %}
+            {% endfor %}
+            </tr>
+            {% ifequal x 0 %}
+                </thead>
+                <tbody>
+            {% endifequal %}
+        {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                   <th><input type="text" placeholder="Rank" /></th>
+                    {% for key,value in excel.items%}
+                        <th><input type="text" placeholder="{{value.0}}" width="auto" /></th>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {%else%}
+    <br><br><br>
+    <h2 align="center">No epitopes found with these settings with WeStBESEL methodology</h2>
+    <br><br><br>
+    {% endif %}
+    </div>
+    
+    <div id="Alignment1" class="tabcontent">
+    
+        <div id="al1"></div>
+
+    </div>
+    <div id="Alignment2" class="tabcontent">
+        <div id="al2"></div>
+    </div>
+{% static "" as baseUrl %}    
+<script>
+
+    var opts = {
+    el: document.getElementById("al1"),
+    vis: {
+      conserv: false,
+      overviewbox: false,
+      seqlogo: true,
+      labelId: false
+    },
+    // smaller menu for JSBin
+    menu: "small",
+    bootstrapMenu: true,
+    zoomer: {
+    // general
+    alignmentWidth: 1500,
+    alignmentHeight: 500,
+}
+};
+
+var plop = {
+    el: document.getElementById("al2"),
+    vis: {
+      conserv: false,
+      overviewbox: false,
+      seqlogo: true,
+      labelId: false      
+    },
+    // smaller menu for JSBin
+    menu: "small",
+    bootstrapMenu: true,
+    zoomer: {
+    // general
+    alignmentWidth: 1500,
+    alignmentHeight: 500,
+}
+};
+
+var m = new msa.msa(opts);
+m.u.file.importURL("{{baseUrl}}prediction/RESULTS_test/{{Test.name}}_{{Test.id}}_aaCS/within-species/UNIPROT-FASTA.aln", function(){
+  m.render();
+});
+
+var m2 = new msa.msa(plop);
+m2.u.file.importURL("{{baseUrl}}prediction/RESULTS_test/{{Test.name}}_{{Test.id}}_aaCS/between-species/homologous_sequences.aln", function(){
+  m2.render();
+});
+
+function openTabs(evt, tabs) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabs).style.display = "block";
+    evt.currentTarget.className += " active";
+}
+document.getElementById("defaultOpen").click();
+
+
+</script>
+        {% endif%}
+    {% else %}
+        <script>
+            refresh(60000);
+        </script>
+        Your results for {{Test.name}} are not over, you will find them <a href="{% url 'results' proc_id=Test.hash_id %}">here</a> 
+    
+    {% endif%}
+    
+
+{% endblock %}
+

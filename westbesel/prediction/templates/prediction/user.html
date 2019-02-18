@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+{% extends "prediction/base.html" %}
+{% load static %}
+
+<head>
+{% block title %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.15/se-1.2.2/datatables.min.css"/>
+<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.10.15/se-1.2.2/datatables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/fixedcolumns/3.2.4/js/dataTables.fixedColumns.min.js"></script>
+<style>
+.core {
+    margin-left:auto;
+    margin-right:auto;
+    width:975px;
+}
+
+td{
+    border:1px solid black;
+}
+
+label{
+    font-size: 17px;
+}
+
+p{
+    font-size: 15px;
+}
+</style>
+<script>
+$(document).ready(function(){
+    var t1=$('#example').DataTable( {
+            "lengthMenu": [[10, 20, 50, -1], [10, 20, 50, "All"]],
+            "pageLength": 10,
+            scrollX:        true,
+            scrollCollapse: true,
+        } );
+});
+</script>
+
+{% endblock %}
+</head>
+
+{% block content %}
+
+{% if user.is_authenticated %}
+    <p>Welcome, {{ user.get_username }}.</p>
+    <form method="post" name="login">{% csrf_token %}
+        <table id="example" class="display" cellspacing="0" width="100%">
+            <thead>
+                <tr><td></td><td>Status</td> <td>Uniprot ID</td><td>Protein</td><td>Organism</td> <td>ep_length</td> <td>ter_length</td> <td>threshold</td> <td>stretch</td> <td>repeats</td> <td>cystein</td><td>Expiration date</td></tr>
+            </thead>
+            <tbody>
+                {% for value in proc_list %}
+                    <tr>
+                        <td><input type="checkbox" name="delete" value="{{value.id}}"></td>
+                        <td>{% if value.over %}<a href="{% url 'results' proc_id=value.hash_id %}">Over{% else %} Pending {% endif %}</a></td> 
+                        <td>{% if value.uniprot %}<a href="https://www.uniprot.org/uniprot/{{value.uniprot}}">{{value.uniprot}}</a>{% endif %}</td>
+                        <td>{{value.protein}}</td>
+                        <td>{{value.organism}}</td>
+                        <td>{{value.min_ep_length}}-{{value.max_ep_length}}</td> 
+                        <td>{{value.min_ter_length}}-{{value.max_ter_length}}</td> 
+                        <td>{{value.threshold}}</td> 
+                        <td>{{value.stretch}}</td> 
+                        <td>{{value.repeats}}</td> 
+                        <td>{{value.cystein}}</td>
+                        <td>{{value.exp_date}}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <button type="submit">Delete entries</button>
+    </form>
+{% else %}
+<br><br><br><br>
+<div class="row align-items-center">
+            
+            <div class="col">
+            <fieldset class="sp_tools">
+                <legend class="sp_tools"><b>L</b>ogin</legend>
+                 <div class="col text-right">
+                <form method="post" name="login">
+                {% csrf_token %}
+                    <p><label>Username : </label><input type="text" name="login"></input></p>
+                    <p><label>Password : </label><input type="password" name="password"></input></p>
+                    <button type="submit">Login</button>
+                </form>
+                </div>
+                </fieldset>
+            </div>
+            
+            <div class="col">
+            <fieldset class="sp_tools">
+            <legend class="sp_tools"><b>R</b>egister</legend>
+            <div class="col text-right">
+                  <form method="post" name="register">
+                    {% csrf_token %}
+                    {% for field in form %}
+                      <p>
+                        <span title="{{ field.help_text }}">{{ field.label_tag }}</span>
+                        {{ field }}
+                        {% for error in field.errors %}
+                          <p style="color: red">{{ error }}</p>
+                        {% endfor %}
+                      </p>
+                    {% endfor %}
+                    <button type="submit">Sign up</button>
+                    
+                </form>
+                </div>
+                </fieldset>
+            </div>
+</div>
+
+{% endif %}
+
+
+{% endblock %}

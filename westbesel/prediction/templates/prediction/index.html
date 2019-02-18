@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+{% extends "prediction/base.html" %}
+{% load static %}
+
+<head>
+{% block title %}
+<style>
+.core {
+    margin-left:auto;
+    margin-right:auto;
+    width:975px;
+}
+
+label{
+    font-size: 17px;
+}
+
+p{
+    font-size: 15px;
+}
+
+.alert {
+    padding: 20px;
+    background-color: #f44336;
+    color: white;
+}
+
+.closebtn {
+    margin-left: 15px;
+    color: white;
+    font-weight: bold;
+    float: right;
+    font-size: 22px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.closebtn:hover {
+    color: black;
+}
+
+</style>
+<script>
+$(document).ready(function(){
+    $("#change_input").click(function(){
+        $("#FASTA_form").toggle();
+    });
+});
+</script>
+
+{% endblock %}
+</head>
+
+{% block content %}
+{% if message %}
+<div class="alert">
+  <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
+  <font size="3">{{message}}</font>
+</div>
+{% endif %}
+<form id="fasta" method="POST" enctype="multipart/form-data">{% csrf_token %}
+    <div class="container-fluid">
+        <fieldset class="sp_tools">
+        <legend class="sp_tools"><b>G</b>eneral settings</legend>
+        <div class="row align-items-center">
+            <div class="col text-center">
+                <div id="name_seq" >
+                    <p><label>Uniprot ID : </label><input id="input0" type="text" name="uniprot"></input> <a href="#" onClick="autoFill2();return false;">Example 1</a></p><br>
+                </div>
+            </div>
+        </div>
+            <div class="col text-center">
+                <p style="align=center;">OR</p>
+            </div>
+         <div class="row align-items-center"  id="FASTA_form" >
+         <div class="col text-right">
+         <br><br>
+         <span title="Please be as specific as possible. See Example 2">
+                <label>Protein name :&nbsp;</label><input id="input1" type="text" name="protein" ></input><br><br>
+                <label>Organism name : &nbsp;</label><input id="input2" type="text" name="organism" ></input><br><br>
+        </span>
+         </div>
+            <div class="col text-center">
+                <label>FASTA : </label><textarea id="input3" name="fasta" cols="70" rows="4" style="display:inline-block;vertical-align:middle;"></textarea><br><br>
+            </div>
+        </div>
+        <div class="row align-items-center">
+            <div class="col text-center">
+            <p><a href="#" onClick="autoFill();return false;">Example 2</a></p>
+        </div></div>
+        <svg height="10" width="100%">
+  <line x1="20%" y1="0" x2="80%" y2="0" style="stroke:rgb(0,0,0);stroke-width:2" />
+</svg> 
+        <div class="row align-items-center">
+<!--            <div class="col text-center">-->
+<!--                <label>Organism : </label><input type="text" name="organisme"></input><br><br>-->
+<!--            </div>-->
+            <div class="col text-center">
+                <label>Email:</label>
+                <input type="text" name="mail"{% if user.is_authenticated %} value="{{user.email}}" {% endif %} required><br>
+                <br>
+            </div>
+        </div>
+        <div class="row align-items-center">
+            <div class="col text-center">
+                <input type="submit" value="Submit">&nbsp;&nbsp;&nbsp;<input type="reset" value="Reset">
+            </div>
+        </div>
+    </fieldset>
+    <br><br><br>
+    <fieldset id="advanced" class="sp_tools">
+    <legend class="sp_tools"><b>A</b>dvanced settings</legend>
+    <div class="row align-items-center" >
+        <div class="col text-center">
+            <label>Epitope length : </label><br>
+            <p>Minimum : <input name="min_l" type="number" value="15" min="10" max="20"> </p>
+            <p>Maximum : <input name="max_l" type="number" value="20" min="15" max="20"></p>
+        </div>
+        
+        <div class="col text-center">
+            <label>Terminal region length : <a href="#" title="Epitope length when in a terminal regions?">?</a></label><br>
+            <p>Minimum : <input name="min_terminal_l" type="number" min="8" max="20" value="12" required></p>
+            <p>Maximum : <input name="terminal_l" type="number" min="12" max="25" value="20" required></p>
+        </div>
+    </div>
+    <div style="border-bottom-style: solid;border-width: 1px;"></div>
+    <div class="row align-items-center">
+        <div class="col text-center">
+        <br>
+            <p><label>Threshold conservation (%) : </label>
+            <input name="threshold" type="number" step="1" min="0", max="100" value="100" required><a href="#" title="Required threshold of conservation to determine conserved stretches in sliding windows">&nbsp;?</a></p> <br>
+        </div>
+            
+        <div class="col text-center">  
+         <br>          
+            <p><label >Stretch length conserved : </label>
+            <input name="stretch_l" type="number" min="5" max="20" value="12" required><a href="#" title="Minimum number of consecutive conserved regions to keep a window as a potential epitope">&nbsp;?</a></p> <br>
+        </div>
+    </div>
+    <div style="border-bottom-style: solid;border-width: 1px;"></div>
+    <div class="row align-items-center">
+        <div class="col text-center">
+        <br>
+            <label>Remove epitopes with consecutive repeats : </label><br>
+            <input type="radio" name="repeat" value="yes" checked>Yes</input>
+            <input type="radio" name="repeat" value="no">No</input><br><br>
+        </div>
+        <div class="col text-center">
+         <br>
+            <label>Process epitopes with cysteins : </label><br>
+            <input type="radio" name="cystein" value="yes" checked>Yes</input>
+            <input type="radio" name="cystein" value="no">No</input><br><br>
+        </div>
+        <div class="col text-center">
+         <br>
+            <label>Remove epitopes with post-translational modification : </label><br>
+            <input type="radio" name="translation" value="yes" checked>Yes</input>
+            <input type="radio" name="translation" value="no">No</input><br><br>
+        </div>
+    </div>
+    
+    <div class="row align-items-center">
+        <div class="col text-center">
+            <label>Hydrophobicity scale : </label>
+            <input type="radio" name="hydrophob" value="cowan" checked><a href="https://web.expasy.org/protscale/pscale/Hphob.pH3.4.html">Cowan Whittaker</a></input>&nbsp;
+            <input type="radio" name="hydrophob" value="roseman"><a href="https://web.expasy.org/protscale/pscale/Hphob.Roseman.html">Roseman</a></input><br><br>
+        </div>
+    </div>
+    
+    </fieldset>
+    </div>
+</form>
+<script>
+function autoFill() {
+    document.getElementById('input1').value = "Protein Tat";
+    document.getElementById('input2').value = "Human immunodeficiency virus type 1 group M subtype D";
+    document.getElementById('input3').value = ">sp|P04609|TAT_HV1Z6\r\nMDPVDPNLEPWNHPGSQPKTACNRCHCKKCCYHCQVCFITKGLGISYGRKKRRQRRRPSQ\r\nGGQTHQDPIPKQPSSQPRGNPTGPKE";
+  }
+  
+function autoFill2() {
+    document.getElementById('input0').value = "P04609";
+  }  
+
+</script>
+{% endblock %}
+

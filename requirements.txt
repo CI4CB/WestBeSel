@@ -1,0 +1,14 @@
+django==1.11.1
+gunicorn==19.7.1
+numpy==1.12.1
+pandas
+bs4
+hashlib
+xlsxwriter
+biopython
+robobrowser
+matplotlib
+scipy
+weblogo
+html2text
+xlrd
