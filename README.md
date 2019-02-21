@@ -6,7 +6,7 @@ You can either submit a FASTA sequence with the protein and organism name or you
 The WeStBESel output is divided into three sections, at the top of the page is the summary of the parameters used to analyze the target protein sequence, below a graphical output and following by is a summary of the results in tabular form. The results of the analysis are distributed in three tabs, you can use the navigation bar to flip through the various output pages, either the summary results (default page) or the multiple alignment results (intra-species or inter-species). 
 
 ############################<br>
-<p>        INSTALLATION</p>
+       INSTALLATION<br>
 ############################<br>
 
 -Install docker (https://docs.docker.com/install/)<br>
