@@ -1,4 +1,4 @@
-django==1.11.1
+django==1.11.23
 gunicorn==19.7.1
 numpy==1.12.1
 pandas
